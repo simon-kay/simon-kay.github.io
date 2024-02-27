@@ -78,6 +78,7 @@
 <button id="resetButton" class="button">Reset Board</button>
 <button id="testButton" class="button">Test</button>
 <button id="test2Button" class="button">Test2</button>
+<button id="randomBoardButton" class="button">Randomize!</button>
 
 <script>
     let selectedColour = 'red'; // Default colour
@@ -88,6 +89,7 @@
     const resetButton = document.getElementById('resetButton');
     const testButton = document.getElementById('testButton');
     const test2Button = document.getElementById('test2Button');
+    const randomBoardButton = document.getElementById('randomBoardButton');
     const colourSelectors = document.querySelectorAll('.selector');
     const widthInput = document.getElementById('widthInput');
     const heightInput = document.getElementById('heightInput');
@@ -193,12 +195,16 @@
         }
         moveForwardAndCombine("wall")
     }
+    function checkForCreatures() {
+        // check for creature combinations.
+        // The order of checking should be: sunburst, large, shape, small, wall
+    }
 
     function moveForwardAndCombine(object) {
         const cells = document.querySelectorAll('.cell'); // all cells
         let cellsArray = Array.from(cells);
         let movementHappened = false;
-        for(let j=0; j<boardWidth; j++){
+        for (let j=0; j<boardWidth; j++){
             let objectFound = false;
             let columnOfCells = [];
             for (let i=0; i<boardHeight; i++) {
@@ -396,6 +402,10 @@
         });
     });
 
+    function getRandomInteger(number) {
+        return Math.floor(Math.random() * number) + 1;
+    }
+
     function test() { 
         resetBoard();
         // objects = ['red', 'yellow', 'green', 'purple', 'wall', 'orb', 'undefined']
@@ -448,6 +458,35 @@
     }
     // Event listener for test button
     test2Button.addEventListener('click', test2);
+
+    function randomBoard() {
+        resetBoard();
+        let objects = ['red', 'yellow', 'green', 'purple'];
+        let creatureCount = 16;
+        let randomColumn = 0;
+        let randomObject = "";
+        const cells = document.querySelectorAll('.cell'); 
+                
+        while(true) {
+            randomColumnIndex = getRandomInteger(boardWidth) - 1;
+            randomObject = objects[Math.floor(Math.random() * objects.length)];
+            console.log(randomColumnIndex);
+            console.log(randomObject);
+            addObjectToColumnIndex(randomColumnIndex, randomObject);
+            creatureCount--;
+            if (creatureCount == 0) {
+                checkForWalls(); // check for any walls and make them
+                checkForCreatures();
+                for (const cell of cells) {
+                    if (cell.classList.contains("wall")) {
+                        randomBoard(); // Try again
+                    }
+                }
+                break;
+            }
+        }
+    }
+    randomBoardButton.addEventListener('click', randomBoard);
 </script>
 
 </body>
