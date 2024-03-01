@@ -11,7 +11,7 @@
     .board {
         display: grid;
         gap: 5px;
-        background-color: #1976d2;
+        background-color: #144575;
         padding: 10px;
     }
     .cell {
@@ -45,16 +45,41 @@
     .yellow { background-color: yellow; }
     .green { background-color: green; }
     .purple { background-color: purple; }
+    .combinedred { background-color: red;}
+    .combinedyellow { background-color: yellow; }
+    .combinedgreen { background-color: green; }
+    .combinedpurple { background-color: purple; }
     .wall {
         background-color: saddlebrown;
         content:url(img/fence.png);
         
     }
-    .orb { background-color: cyan;}
+    .orb { background-color: rgb(255, 255, 255);
+        position: relative;
+        top: 50%;
+        left: 50%;
+        border-radius: 100%;
+        z-index: 1;
+        box-shadow: 
+        10px -10px 20px 5px red,
+        -10px -10px 20px 5px yellow,
+        -10px 10px 20px 5px green,
+        10px 10px 20px 5px purple;
+        animation: shadow-rotate 1.5s linear infinite;
+        transform-origin: center;
+    }
+    @keyframes shadow-rotate {
+        from {
+            transform: translate(-50%, -50%) rotate(0deg);
+        }
+        to {
+            transform: translate(-50%, -50%) rotate(360deg);
+        }
+    }
     .button {
         margin-top: 10px;
         padding: 10px;
-        background-color: #1976d2;
+        background-color: #144575;
         color: white;
         border: none;
         cursor: pointer;
@@ -63,8 +88,9 @@
 </head>
 <body>
 <div>
-    Width: <input type="number" id="widthInput" value="7"> 
+    Width: <input type="number" id="widthInput" value="8"> 
     Height: <input type="number" id="heightInput" value="6">
+    Creature Count: <input type="number" id="countInput" value="24">
 </div>
 <div id="colourSelectors">
     <div class="selector red" data-color="red"></div>
@@ -78,21 +104,27 @@
 <button id="resetButton" class="button">Reset Board</button>
 <button id="testButton" class="button">Test</button>
 <button id="test2Button" class="button">Test2</button>
+<button id="test3Button" class="button">Test3</button>
+<button id="test4Button" class="button">Test4</button>
 <button id="randomBoardButton" class="button">Randomize!</button>
 
 <script>
     let selectedColour = 'red'; // Default colour
-    let boardWidth = 7;
+    let boardWidth = 8;
     let boardHeight = 6;
+    let creatureCount = 24;
     const objects = ['red', 'yellow', 'green', 'purple', 'wall', 'orb'];
     const boardContainer = document.querySelector('.board');
     const resetButton = document.getElementById('resetButton');
     const testButton = document.getElementById('testButton');
     const test2Button = document.getElementById('test2Button');
+    const test3Button = document.getElementById('test3Button');
+    const test4Button = document.getElementById('test4Button');
     const randomBoardButton = document.getElementById('randomBoardButton');
     const colourSelectors = document.querySelectorAll('.selector');
     const widthInput = document.getElementById('widthInput');
     const heightInput = document.getElementById('heightInput');
+    const creatureInput = document.getElementById('countInput');
 
     function createCell() {
         const cell = document.createElement('div');
@@ -156,7 +188,7 @@
         // console.log("LOG checkEmpty - classList:") 
         // console.log(cell.classList);
         var element_classes = cell.className.split(/\s+/);
-        console.log(element_classes);
+        // console.log(cell);
         // Loop each class the element has
         for (var i = 0; i < element_classes.length; i++) {
             // Check if each class from the element is within the array of classes we want to match
@@ -193,18 +225,95 @@
         for (const cell of cells) {
             checkInARow(cell);
         }
-        moveForwardAndCombine("wall")
+        moveForwardAndCombine("wall");
     }
     function checkForCreatures() {
         // check for creature combinations.
         // The order of checking should be: sunburst, large, shape, small, wall
     }
+    function combineSmallCreatures() {
+        const cells = document.querySelectorAll('.cell'); // all cells
+        let cellsArray = Array.from(cells);
+        let currentColour = "";
+        let previousColour = "";
+        
+        let movementHappened = false;
+
+        for (let j=0; j<boardWidth; j++){
+            let numberInARow = 0;
+            let columnOfCells = [];
+            let movementHappened = false;
+            // check 1 column at a time
+            for (let i=0; i<boardHeight; i++) {
+                console.log("numberInARow - " + numberInARow);
+                const thisCell = cellsArray[((i*boardWidth) + j)];
+                if (checkEmpty(thisCell)) {
+                    console.log("finished checking at " + j + ", " +i);
+                    continue;
+                }
+                previousColour = currentColour;
+                currentColour = thisCell.classList.value.split(" ")[1];
+                if (previousColour === currentColour) {
+                    numberInARow++;
+                } else {
+                    if (numberInARow > 2) {
+                        console.log("LOG combineSmallCreatures - TOP Found " + numberInARow + " in a row");
+                        console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                        console.log(columnOfCells);
+                        for (let i = 0; i < numberInARow; i++) {
+                            console.log("pop");
+                            columnOfCells.pop();
+                        }
+                        console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                        console.log(columnOfCells);
+                        columnOfCells.splice(0, 0, "combined" + previousColour);
+                        console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                        console.log(columnOfCells);
+                        movementHappened = true;
+                    }
+                    numberInARow = 1;
+                }
+                columnOfCells.push(currentColour);
+            }
+            if (numberInARow > 2) {
+                console.log("LOG combineSmallCreatures - BOTFound " + numberInARow + " in a row");
+                console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                console.log(columnOfCells);
+                for (let i = 0; i < numberInARow; i++) {
+                    console.log("pop");
+                    columnOfCells.pop();
+                }
+                console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                console.log(columnOfCells);
+                columnOfCells.splice(0, 0, "combined" + previousColour);
+                console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                console.log(columnOfCells);
+                movementHappened = true;
+            }
+            if (movementHappened) {
+                console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                console.log(columnOfCells);
+                for (let x=0; x < boardHeight; x++) {
+                    //console.log("LOG moveForwardAndCombine - x is " + x);
+                    const targetCell = cells[(boardWidth*x) + j]
+                    clearColours(targetCell);
+                    if (x < columnOfCells.length) {
+                        addColour(targetCell,columnOfCells[x]);
+                    }
+                }
+                //turnToWall(cells[j]);
+            }
+        }
+        moveForwardAndCombine("wall");
+    }
 
     function moveForwardAndCombine(object) {
+        // 
         const cells = document.querySelectorAll('.cell'); // all cells
         let cellsArray = Array.from(cells);
         let movementHappened = false;
         for (let j=0; j<boardWidth; j++){
+            // Check 1 column at a time, build columnOfCells cells incase we need to move them forwards. 
             let objectFound = false;
             let columnOfCells = [];
             for (let i=0; i<boardHeight; i++) {
@@ -249,15 +358,13 @@
         const cells = document.querySelectorAll('.cell'); // all cells
         const cellIndex = Array.from(cell.parentNode.children).indexOf(cell); // index of passed cell
         const columnNumber = ((cellIndex%boardWidth) ) + 1 // which column are we in
-        console.log("boardWidth " + boardWidth);
-        console.log("columnNumber " + columnNumber);
         const numberToCheck = (boardWidth - columnNumber );
         if (checkEmpty(cell)) {
-            console.log("LOG checkInARow - exit: the cell is empty")
+            //console.log("LOG checkInARow - exit: the cell is empty")
             return;
         }
-        if (cell.classList.contains('wall')) {
-            console.log("LOG checkInARow - exit: walls in a row don't matter");
+        if (cell.classList.contains('wall','orb')) {
+            console.log("LOG checkInARow - exit: walls and orbs in a row don't matter");
             return;
         }
         if (!(numberToCheck > 1)) {
@@ -385,6 +492,9 @@
         boardHeight = parseInt(heightInput.value);
         updateBoardSize();
     });
+    countInput.addEventListener('change', () => {
+        creatureCount = parseInt(countInput.value);
+    });
 
     // Create the board initially
     updateBoardSize();
@@ -407,10 +517,12 @@
     }
 
     function test() { 
+        console.log("ClickedButton Test");
         resetBoard();
-        // objects = ['red', 'yellow', 'green', 'purple', 'wall', 'orb', 'undefined']
         const cells = document.querySelectorAll('.cell');
-        addColour(cells[0],objects[1]);
+        let objects = ['red', 'yellow', 'green', 'purple', 'wall', 'orb', 'undefined'];
+        
+        addColour(cells[0],objects[5]);
         addColour(cells[1],objects[3]);
         addColour(cells[2],objects[3]);
         addColour(cells[3],objects[0]);
@@ -437,44 +549,139 @@
         addColour(cells[32],objects[2]);
         addColour(cells[33],objects[2]);
 
-//        addColour(cells[39],objects[1]);
         addColour(cells[40],objects[3]);
     }
-    // Event listener for test button
     testButton.addEventListener('click', test);
 
     function test2() { 
-        console.log("Test2");
+        console.log("ClickedButton Test2");
+        resetBoard();
         const cells = document.querySelectorAll('.cell');
-        //removeObject(cells[0]);
-        //removeObject(cells[1]);
-        //removeObject(cells[2]);
-        //removeObject(cells[3]);
-        //removeObject(cells[4]);
-        //removeObject(cells[5]);
-        //removeObject(cells[6]);
-        //removeObject(cells[12]);
-        addColour(cells[1],objects[5]);
+        let objects = ['red', 'yellow', 'green', 'purple', 'wall', 'orb', 'undefined'];
+            
+        addColour(cells[0],objects[4]);
+        addColour(cells[1],objects[4]);
+        addColour(cells[2],objects[4]);
+        addColour(cells[3],objects[2]);
+        addColour(cells[4],objects[4]);
+        addColour(cells[5],objects[4]);
+        addColour(cells[6],objects[4]);
+        addColour(cells[7],objects[4]);
+        
+        addColour(cells[8],objects[0]);
+        addColour(cells[9],objects[2]);
+        addColour(cells[10],objects[2]);
+        addColour(cells[11],objects[3]);
+        addColour(cells[12],objects[2]);
+        addColour(cells[13],objects[2]);
+        addColour(cells[14],objects[0]);
+        addColour(cells[15],objects[2])
+        
+        addColour(cells[16],objects[2]);
+        addColour(cells[17],objects[2]);
+        addColour(cells[18],objects[0]);
+        addColour(cells[19],objects[2]);
+        addColour(cells[20],objects[2]);
+        addColour(cells[21],objects[3]);
+        addColour(cells[22],objects[2]);
+        addColour(cells[23],objects[2]);
+
+        //addColour(cells[24],objects[0]);
+        addColour(cells[25],objects[0]);
+        addColour(cells[26],objects[2]);
+        addColour(cells[27],objects[0]);
+        addColour(cells[28],objects[0]);
+        addColour(cells[29],objects[2]);
+        addColour(cells[30],objects[0]);
+        addColour(cells[31],objects[0]);
+
+        //addColour(cells[32],objects[2]);
+        //addColour(cells[33],objects[2]);
+        //addColour(cells[34],objects[2]);
+        //addColour(cells[35],objects[0]);
+        //addColour(cells[36],objects[0]);
+        //addColour(cells[37],objects[2]);
+        //addColour(cells[38],objects[0]);
+        //addColour(cells[39],objects[0]);
     }
-    // Event listener for test button
     test2Button.addEventListener('click', test2);
 
+    function test3() { 
+        console.log("ClickedButton Test3");
+        resetBoard();
+        const cells = document.querySelectorAll('.cell');
+        let objects = ['red', 'yellow', 'green', 'purple', 'wall', 'orb', 'undefined'];
+            
+        addColour(cells[0],objects[4]);
+        addColour(cells[1],objects[4]);
+        addColour(cells[2],objects[4]);
+        addColour(cells[3],objects[2]);
+        addColour(cells[4],objects[4]);
+        addColour(cells[5],objects[4]);
+        addColour(cells[6],objects[4]);
+        addColour(cells[7],objects[4]);
+        
+        addColour(cells[8],objects[3]);
+        addColour(cells[9],objects[2]);
+        addColour(cells[10],objects[2]);
+        addColour(cells[11],objects[3]);
+        addColour(cells[12],objects[2]);
+        addColour(cells[13],objects[2]);
+        addColour(cells[14],objects[0]);
+        addColour(cells[15],objects[2])
+        
+        addColour(cells[16],objects[3]);
+        addColour(cells[17],objects[2]);
+        addColour(cells[18],objects[0]);
+        addColour(cells[19],objects[2]);
+        addColour(cells[20],objects[2]);
+        addColour(cells[21],objects[3]);
+        addColour(cells[22],objects[2]);
+        addColour(cells[23],objects[2]);
+
+        addColour(cells[24],objects[3]);
+        addColour(cells[25],objects[0]);
+        addColour(cells[26],objects[2]);
+        addColour(cells[27],objects[0]);
+        addColour(cells[28],objects[0]);
+        addColour(cells[29],objects[2]);
+        addColour(cells[30],objects[0]);
+        addColour(cells[31],objects[0]);
+
+        //addColour(cells[32],objects[2]);
+        //addColour(cells[33],objects[2]);
+        //addColour(cells[34],objects[2]);
+        //addColour(cells[35],objects[0]);
+        //addColour(cells[36],objects[0]);
+        //addColour(cells[37],objects[2]);
+        //addColour(cells[38],objects[0]);
+        //addColour(cells[39],objects[0]);
+        combineSmallCreatures();
+    }
+    test3Button.addEventListener('click', test3);
+
+    function test4() {
+        combineSmallCreatures();
+    }
+    test4Button.addEventListener('click', test4);
+    
     function randomBoard() {
+        console.log("ClickedButton Randomize!");
         resetBoard();
         let objects = ['red', 'yellow', 'green', 'purple'];
-        let creatureCount = 16;
+        let count = creatureCount;
         let randomColumn = 0;
         let randomObject = "";
         const cells = document.querySelectorAll('.cell'); 
-                
+                        
         while(true) {
             randomColumnIndex = getRandomInteger(boardWidth) - 1;
             randomObject = objects[Math.floor(Math.random() * objects.length)];
             console.log(randomColumnIndex);
             console.log(randomObject);
             addObjectToColumnIndex(randomColumnIndex, randomObject);
-            creatureCount--;
-            if (creatureCount == 0) {
+            count--;
+            if (count == 0) {
                 checkForWalls(); // check for any walls and make them
                 checkForCreatures();
                 for (const cell of cells) {
