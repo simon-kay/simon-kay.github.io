@@ -45,16 +45,19 @@
     .yellow { background-color: yellow; }
     .green { background-color: green; }
     .purple { background-color: purple; }
+    [class^="cell combined"] {
+        content:url(img/meeple.svg);
+    }
     .combinedred { background-color: red;}
     .combinedyellow { background-color: yellow; }
     .combinedgreen { background-color: green; }
-    .combinedpurple { background-color: purple; }
+    .combinedpurple { background-color: purple;}
     .wall {
         background-color: saddlebrown;
         content:url(img/fence.png);
         
     }
-    .orb { background-color: rgb(255, 255, 255);
+    .orb { background-color: silver;
         position: relative;
         top: 50%;
         left: 50%;
@@ -113,7 +116,7 @@
     let boardWidth = 8;
     let boardHeight = 6;
     let creatureCount = 24;
-    const objects = ['red', 'yellow', 'green', 'purple', 'wall', 'orb'];
+    const objects = ['red', 'yellow', 'green', 'purple', 'wall', 'orb', 'combinedred', 'combinedyellow', 'combinedgreen', 'combinedpurple'];
     const boardContainer = document.querySelector('.board');
     const resetButton = document.getElementById('resetButton');
     const testButton = document.getElementById('testButton');
@@ -136,11 +139,13 @@
     function dropPiece(cell) {
         const cellIndex = Array.from(cell.parentNode.children).indexOf(cell);
         console.log("LOG dropPiece - cellIndex: " + cellIndex);
+        console.log("LOG dropPiece - try to add: " + selectedColour);
         
         const currentCell = cell;
 
         if (selectedColour === 'remove') {
             removeObject(currentCell);
+            checkForCreatures();
             return;
         }
         
@@ -160,14 +165,14 @@
         
         //some sort of undo? could save index numbers and have state machine
         
-        checkForWalls();
+        checkForCreatures();
     }
 
     function moveUp(cell) {
         const cells = document.querySelectorAll('.cell');
         const cellIndex = Array.from(cell.parentNode.children).indexOf(cell);
         const cellInAboveRow = cells[cellIndex-boardWidth];
-        if(cellIndex >= boardWidth) {
+        if (cellIndex >= boardWidth) {
             console.log("LOG moveUp - checking index " + cellIndex + " against " + Array.from(cellInAboveRow.parentNode.children).indexOf(cellInAboveRow))
             if (checkEmpty(cellInAboveRow)) {
                 console.log("LOG moveUp - the above space was empty!")
@@ -177,8 +182,8 @@
             } else {
                 console.log("LOG moveUp - the above was full");
                 // If the space above is full then the creature stays, unless it's a wall then it can combine or move past others
-                //TODO: logic for when walls are moving up and should go above all the way to the top
-                mergeWall(cell, cellInAboveRow);
+                mergeCell(cell, cellInAboveRow, "wall");
+                mergeCell(cell, cellInAboveRow, "combinedred");
             }   
         }
     }
@@ -203,14 +208,14 @@
         return empty;
     }
 
-    function mergeWall(cell, cellInAboveRow) {
-        // Check if both are walls, and combine them if so
-        if (cell.classList.contains('wall') && cellInAboveRow.classList.contains('wall')) {
-            console.log("LOG mergeWall - We should combine as they are walls");
+    function mergeCell(cell, cellInAboveRow, object) {
+        // Check if both contain the same obeject, and combine them if so
+        if (cell.classList.contains(object) && cellInAboveRow.classList.contains(object)) {
+            console.log("LOG mergeCell - We should combine as they are both " + object);
             cellInAboveRow.className = cell.className;
             clearColours(cell);
         } else {
-            console.log("LOG mergeWall - Both are not walls");
+            console.log("LOG mergeCall - Both are not " + object);
         }
     }
 
@@ -225,11 +230,85 @@
         for (const cell of cells) {
             checkInARow(cell);
         }
-        moveForwardAndCombine("wall");
+        moveForwardAndCombineWalls();
+    }
+
+    function pushToTheFront() {
+        const cells = document.querySelectorAll('.cell'); // all cells
+        const pushForwardList = ['combinedred', 'combinedyellow', 'combinedgreen', 'combinedpurple'];
+        console.log("LOG pushToTheFront - entered");
+        
+        for (let i = 0; i < (cells.length - boardWidth); i++) {
+            console.log("LOG pushToTheFront - " + i);
+            const cell = cells[i];
+            const cellInBelowRow = cells[i+boardWidth];
+            if (cellContains(cell, pushForwardList) && cellContains(cellInBelowRow, pushForwardList)) {
+                console.log("LOG pushToTheFront - combine them");
+                mergeCell(cellInBelowRow, cell, getColourForCell(cell));
+                //clearCell(cellInBelowRow);
+            } else if (cellContains(cell, pushForwardList) && !cellContains(cellInBelowRow, pushForwardList)) {
+                //console.log("LOG pushToTheFront - do nothing");
+            } else if (!cellContains(cell, pushForwardList) && cellContains(cellInBelowRow, pushForwardList)) {
+                console.log("LOG pushToTheFront - swap");
+                swapCells(cell, cellInBelowRow);
+            } else if (checkEmpty(cell) && !checkEmpty(cellInBelowRow)) {
+                moveUp(cellInBelowRow);
+                //console.log("LOG pushToTheFront - push forwards");
+            } else {
+                //console.log("LOG pushToTheFront - do nothing");
+            }
+        }
+        console.log("LOG pushToTheFront - exited");
+    }
+    function swapCells(firstCell, secondCell) {
+        let firstCellClassName = firstCell.className;
+        firstCell.className = secondCell.className;
+        secondCell.className = firstCellClassName;
+    }
+    function temp() {
+        const cellInAboveRow = cells[cellIndex-boardWidth];
+        if (cellIndex >= boardWidth) {
+            console.log("LOG moveUp - checking index " + cellIndex + " against " + Array.from(cellInAboveRow.parentNode.children).indexOf(cellInAboveRow))
+            if (checkEmpty(cellInAboveRow)) {
+                console.log("LOG moveUp - the above space was empty!")
+                cellInAboveRow.className = cell.className;
+                clearColours(cell);
+                moveUp(cellInAboveRow);
+            } else {
+                console.log("LOG moveUp - the above was full");
+                // If the space above is full then the creature stays, unless it's a wall then it can combine or move past others
+                mergeCell(cell, cellInAboveRow, "wall");
+                mergeCell(cell, cellInAboveRow, "combinedred");
+            }
+        }
+
     }
     function checkForCreatures() {
+        let cells = document.querySelectorAll('.cell'); // all cells
+        let cellsBefore = "";
+        let cellsAfter = "";
+        for (const cell of cells) {
+            cellsBefore = cellsBefore + cell.classList.value;
+        }
+        combineSmallCreatures();
+        pushToTheFront();
+        // moveForwardAndCombine("combinedred");
+        // moveForwardAndCombine("combinedyellow");
+        // moveForwardAndCombine("combinedgreen");
+        // moveForwardAndCombine("combinedpurple");
+        checkForWalls();
+        for (const cell of cells) {
+            cellsAfter = cellsAfter + cell.classList.value;
+        }
+        
+        if (!(cellsBefore === cellsAfter)){
+            checkForCreatures();
+        }
         // check for creature combinations.
         // The order of checking should be: sunburst, large, shape, small, wall
+    }
+    function getColourForCell(cell) {
+        return cell.classList.value.split(" ")[1];
     }
     function combineSmallCreatures() {
         const cells = document.querySelectorAll('.cell'); // all cells
@@ -237,8 +316,6 @@
         let currentColour = "";
         let previousColour = "";
         
-        let movementHappened = false;
-
         for (let j=0; j<boardWidth; j++){
             let numberInARow = 0;
             let columnOfCells = [];
@@ -252,47 +329,56 @@
                     continue;
                 }
                 previousColour = currentColour;
-                currentColour = thisCell.classList.value.split(" ")[1];
+                currentColour = getColourForCell(thisCell);
                 if (previousColour === currentColour) {
                     numberInARow++;
                 } else {
-                    if (numberInARow > 2) {
-                        console.log("LOG combineSmallCreatures - TOP Found " + numberInARow + " in a row");
-                        console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
-                        console.log(columnOfCells);
+                    if (numberInARow > 1 && previousColour.startsWith("contained")) {
                         for (let i = 0; i < numberInARow; i++) {
-                            console.log("pop");
                             columnOfCells.pop();
                         }
-                        console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                        columnOfCells.splice(0, 0, previousColour);
+                        movementHappened = true;
+                    } else if (numberInARow > 2) {
+                        // console.log("LOG combineSmallCreatures - TOP Found " + numberInARow + " in a row");
+                        // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
                         console.log(columnOfCells);
+                        for (let i = 0; i < numberInARow; i++) {
+                            columnOfCells.pop();
+                        }
                         columnOfCells.splice(0, 0, "combined" + previousColour);
-                        console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
-                        console.log(columnOfCells);
+                        // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                        // console.log(columnOfCells);
                         movementHappened = true;
                     }
                     numberInARow = 1;
                 }
                 columnOfCells.push(currentColour);
             }
-            if (numberInARow > 2) {
-                console.log("LOG combineSmallCreatures - BOTFound " + numberInARow + " in a row");
-                console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+            if (numberInARow > 1 && previousColour.startsWith("contained")) {
+                for (let i = 0; i < numberInARow; i++) {
+                    columnOfCells.pop();
+                }
+                columnOfCells.splice(0, 0, previousColour);
+                movementHappened = true;
+            } else if (numberInARow > 2) {
+                console.log(numberInARow + " " + previousColour);
+                // console.log("LOG combineSmallCreatures - BOT Found " + numberInARow + " in a row");
+                // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
                 console.log(columnOfCells);
                 for (let i = 0; i < numberInARow; i++) {
                     console.log("pop");
                     columnOfCells.pop();
                 }
-                console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
-                console.log(columnOfCells);
-                columnOfCells.splice(0, 0, "combined" + previousColour);
-                console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                // console.log(columnOfCells);
+                columnOfCells.push("combined" + previousColour);
                 console.log(columnOfCells);
                 movementHappened = true;
             }
             if (movementHappened) {
-                console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
-                console.log(columnOfCells);
+                // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                // console.log(columnOfCells);
                 for (let x=0; x < boardHeight; x++) {
                     //console.log("LOG moveForwardAndCombine - x is " + x);
                     const targetCell = cells[(boardWidth*x) + j]
@@ -301,14 +387,11 @@
                         addColour(targetCell,columnOfCells[x]);
                     }
                 }
-                //turnToWall(cells[j]);
             }
         }
-        moveForwardAndCombine("wall");
     }
 
-    function moveForwardAndCombine(object) {
-        // 
+    function moveForwardAndCombineWalls() {
         const cells = document.querySelectorAll('.cell'); // all cells
         let cellsArray = Array.from(cells);
         let movementHappened = false;
@@ -319,25 +402,25 @@
             for (let i=0; i<boardHeight; i++) {
                 //iterating through column
                 const thisCell = cellsArray[((i*boardWidth) + j)];
-                //console.log("LOG moveForwardAndCombine - width: " + j + " height: " + i + " cellsArray: " + thisCell.classList);
-                if (thisCell.classList.contains('wall')) {
+                //console.log("LOG moveForwardAndCombineWalls - width: " + j + " height: " + i + " cellsArray: " + thisCell.classList);
+                if (thisCell.classList.contains("wall")) {
                     objectFound = true;
-                    console.log('LOG moveForwardAndCombine - found a wall in row: ' + i );
+                    console.log("LOG moveForwardAndCombineWalls - found a wall in row: " + i );
                     if (i > 0) {
                         movementHappened = true;
                     }
                     clearColours(thisCell);
                 } else {
                     if (!checkEmpty(thisCell)) {
-                        columnOfCells.push(thisCell.classList.value.split(" ")[1]);
+                        columnOfCells.push(getColourForCell(thisCell));
                     }
                 }
             }
             if (objectFound) {
-                console.log("LOG moveForwardAndCombine - columnOfCells looks like this: ");
+                console.log("LOG moveForwardAndCombineWalls - columnOfCells looks like this: ");
                 console.log(columnOfCells);
                 for (let x=1; x < boardHeight; x++) {
-                    //console.log("LOG moveForwardAndCombine - x is " + x);
+                    //console.log("LOG moveForwardAndCombineWalls - x is " + x);
                     const targetCell = cells[(boardWidth*x) + j]
                     clearColours(targetCell);
                     if (x-1 < columnOfCells.length) {
@@ -352,9 +435,21 @@
         }
     }
 
+    function cellContains(cell, objectList) {
+        // checks if any of objectList is contained in cell
+        for (let i = 0; i < objectList.length; i++) {
+            if (cell.classList.contains(objectList[i])) {
+                //console.log("cellContains is true");
+                return objectList[i];
+            }
+        }
+        //console.log("cellContains is false");
+        return false;
+    }
     function checkInARow(cell) {
         // Check if there are 3 or more in a row
         // Make walls if 3+ in a row. Also make a sunburst if there are 5+
+        const ignoredObjects = ["wall", "orb", "combinedred", "combinedyellow", "combinedgreen", "combinedpurple"];
         const cells = document.querySelectorAll('.cell'); // all cells
         const cellIndex = Array.from(cell.parentNode.children).indexOf(cell); // index of passed cell
         const columnNumber = ((cellIndex%boardWidth) ) + 1 // which column are we in
@@ -363,15 +458,15 @@
             //console.log("LOG checkInARow - exit: the cell is empty")
             return;
         }
-        if (cell.classList.contains('wall','orb')) {
-            console.log("LOG checkInARow - exit: walls and orbs in a row don't matter");
+        if (cellContains(cell, ignoredObjects)) {
+            console.log("LOG checkInARow - exit: ignoredObject found");
             return;
         }
         if (!(numberToCheck > 1)) {
-            console.log("LOG checkInARow - exit: not enough cells for a wall");
+            //console.log("LOG checkInARow - exit: not enough cells for a wall");
             return;
         } // exit the checks if this in the last 2 columns, no row of 3 could be possible
-        const objectType = cell.classList.value.split(" ")[1];
+        const objectType = getColourForCell(cell);
         console.log("LOG checkInARow - objectType: " + objectType);
         console.log("LOG checkInARow - numberToCheck: " + numberToCheck);
         let numberInARow = 1;
@@ -387,6 +482,7 @@
         if (numberInARow >= 3) {
             for (let i = 1; i <= numberInARow; i++) {
                 // make them all walls
+                console.log("LOG checkInARow - making walls");
                 turnToWall(cells[cellIndex+i-1]);
             }
             
@@ -409,8 +505,7 @@
     function resetBoard() {
         const cells = document.querySelectorAll('.cell');
         for (const cell of cells) {
-            clearColours(cell);
-            cell.classList.remove("orb");
+            clearCell(cell);
         }
     }
 
@@ -443,7 +538,7 @@
             //iterating through column
             const thisCell = cells[((i*boardWidth) + columnIndex)];
             if (!checkEmpty(thisCell)) {
-                columnOfCells.push(thisCell.classList.value.split(" ")[1]);
+                columnOfCells.push(getColourForCell(thisCell));
             }
         }
         console.log("LOG removeObject - columnOfCells looks like this: ");
@@ -460,7 +555,12 @@
     }
 
     function clearColours (cell) {
-        cell.classList.remove('red', 'yellow', 'green', 'purple', 'wall', 'orb', 'undefined');
+        cell.classList.remove('red', 'yellow', 'green', 'purple', 'wall', 'orb', 'combinedred', 'combinedyellow', 'combinedgreen', 'combinedpurple', 'undefined');
+    }
+    function clearCell (cell) {
+        objects.forEach(element => {
+            cell.classList.remove(element);
+        });
     }
 
     function addColour (cell, colour) {
@@ -468,12 +568,12 @@
     }
 
     function addObjectToColumnIndex(columnIndex, objectType) {
+        // TODO needs to handle full column
         const cells = document.querySelectorAll('.cell'); // all cells
         const cellIndex = cells.length - boardWidth + columnIndex;
         const targetCell = cells[cellIndex];
         console.log(cellIndex);
         console.log(targetCell);
-        //const cellInAboveRow = cells[cellIndex-boardWidth];
 
         console.log("LOG addObjectToColumnIndex - Adding " + objectType + " to columnIndex: " + columnIndex);
         
@@ -568,59 +668,6 @@
         addColour(cells[6],objects[4]);
         addColour(cells[7],objects[4]);
         
-        addColour(cells[8],objects[0]);
-        addColour(cells[9],objects[2]);
-        addColour(cells[10],objects[2]);
-        addColour(cells[11],objects[3]);
-        addColour(cells[12],objects[2]);
-        addColour(cells[13],objects[2]);
-        addColour(cells[14],objects[0]);
-        addColour(cells[15],objects[2])
-        
-        addColour(cells[16],objects[2]);
-        addColour(cells[17],objects[2]);
-        addColour(cells[18],objects[0]);
-        addColour(cells[19],objects[2]);
-        addColour(cells[20],objects[2]);
-        addColour(cells[21],objects[3]);
-        addColour(cells[22],objects[2]);
-        addColour(cells[23],objects[2]);
-
-        //addColour(cells[24],objects[0]);
-        addColour(cells[25],objects[0]);
-        addColour(cells[26],objects[2]);
-        addColour(cells[27],objects[0]);
-        addColour(cells[28],objects[0]);
-        addColour(cells[29],objects[2]);
-        addColour(cells[30],objects[0]);
-        addColour(cells[31],objects[0]);
-
-        //addColour(cells[32],objects[2]);
-        //addColour(cells[33],objects[2]);
-        //addColour(cells[34],objects[2]);
-        //addColour(cells[35],objects[0]);
-        //addColour(cells[36],objects[0]);
-        //addColour(cells[37],objects[2]);
-        //addColour(cells[38],objects[0]);
-        //addColour(cells[39],objects[0]);
-    }
-    test2Button.addEventListener('click', test2);
-
-    function test3() { 
-        console.log("ClickedButton Test3");
-        resetBoard();
-        const cells = document.querySelectorAll('.cell');
-        let objects = ['red', 'yellow', 'green', 'purple', 'wall', 'orb', 'undefined'];
-            
-        addColour(cells[0],objects[4]);
-        addColour(cells[1],objects[4]);
-        addColour(cells[2],objects[4]);
-        addColour(cells[3],objects[2]);
-        addColour(cells[4],objects[4]);
-        addColour(cells[5],objects[4]);
-        addColour(cells[6],objects[4]);
-        addColour(cells[7],objects[4]);
-        
         addColour(cells[8],objects[3]);
         addColour(cells[9],objects[2]);
         addColour(cells[10],objects[2]);
@@ -656,12 +703,66 @@
         //addColour(cells[37],objects[2]);
         //addColour(cells[38],objects[0]);
         //addColour(cells[39],objects[0]);
-        combineSmallCreatures();
+    }
+    test2Button.addEventListener('click', test2);
+
+    function test3() { 
+        console.log("ClickedButton Test3");
+        resetBoard();
+        const cells = document.querySelectorAll('.cell');
+        let objects = ['wall', 'red', 'yellow', 'green', 'purple', 'combinedred', 'combinedyellow', 'combinedgreen', 'combinedpurple', 'orb', 'undefined'];
+            
+        addColour(cells[0],objects[5]);
+        addColour(cells[1],objects[5]);
+        addColour(cells[2],objects[1]);
+        addColour(cells[3],objects[4]);
+        // addColour(cells[4],objects[4]);
+        // addColour(cells[5],objects[4]);
+        // addColour(cells[6],objects[4]);
+        // addColour(cells[7],objects[4]);
+        
+        addColour(cells[8],objects[5]);
+        addColour(cells[9],objects[3]);
+        addColour(cells[10],objects[7]);
+        addColour(cells[11],objects[2]);
+        // addColour(cells[12],objects[2]);
+        // addColour(cells[13],objects[2]);
+        // addColour(cells[14],objects[0]);
+        // addColour(cells[15],objects[2])
+        
+        addColour(cells[16],objects[2]);
+        addColour(cells[17],objects[2]);
+        addColour(cells[18],objects[4]);
+        addColour(cells[19],objects[3]);
+        // addColour(cells[20],objects[2]);
+        // addColour(cells[21],objects[3]);
+        // addColour(cells[22],objects[2]);
+        // addColour(cells[23],objects[2]);
+
+        // addColour(cells[24],objects[3]);
+        // addColour(cells[25],objects[0]);
+        // addColour(cells[26],objects[2]);
+        // addColour(cells[27],objects[0]);
+        // addColour(cells[28],objects[0]);
+        // addColour(cells[29],objects[2]);
+        // addColour(cells[30],objects[0]);
+        // addColour(cells[31],objects[0]);
+
+        //addColour(cells[32],objects[2]);
+        //addColour(cells[33],objects[2]);
+        //addColour(cells[34],objects[2]);
+        //addColour(cells[35],objects[0]);
+        //addColour(cells[36],objects[0]);
+        //addColour(cells[37],objects[2]);
+        //addColour(cells[38],objects[0]);
+        //addColour(cells[39],objects[0]);
+        
     }
     test3Button.addEventListener('click', test3);
 
     function test4() {
-        combineSmallCreatures();
+        console.log("ClickedButton test4");
+        pushToTheFront();
     }
     test4Button.addEventListener('click', test4);
     
