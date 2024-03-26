@@ -9,6 +9,9 @@
     body {
         font-family: Arial, sans-serif;
     }
+    body > div {
+        margin-bottom: 10px;
+    }
     
     .board {
         display: grid;
@@ -29,14 +32,16 @@
     }
     #colourSelectors {
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-start;
         margin-bottom: 10px;
+        align-items: center;
     }
     .selector {
         width: 30px;
         height: 30px;
         border-radius: 50%;
         cursor: pointer;
+        margin-right: 5px;
     }
     .selector.red {border: 2px solid black;}
     .remove {
@@ -104,34 +109,38 @@
 </style>
 </head>
 <body>
-<div id="boardVariables">
-    Width: <input type="number" id="widthInput" value="8"> 
-    Height: <input type="number" id="heightInput" value="6">
-    Creature Count: <input type="number" id="countInput" value="24">
-</div>
 <div id="colourSelectors">
-    <div class="selector red" data-color="red"></div>
-    <div class="selector yellow" data-color="yellow"></div>
-    <div class="selector green" data-color="green"></div>
-    <div class="selector purple" data-color="purple"></div>
-    <div class="selector wall" data-color="wall"></div>
-    <div class="selector remove" data-color="remove">X</div>
+    <span><b>Select:</b></span>
+    <div class="selector red" data-color="red" title="Add a red"></div>
+    <div class="selector yellow" data-color="yellow" title="Add a yellow"></div>
+    <div class="selector green" data-color="green" title="Add a green"></div>
+    <div class="selector purple" data-color="purple" title="Add a purple"></div>
+    <div class="selector wall" data-color="wall" title="Add a wall"></div>
+    <div class="selector remove" data-color="remove" title="Remove something">X</div>
 </div>
 <div class="board"></div>
-<button id="resetButton" class="button">Reset Board</button>
-<button id="saveButton" class="button">Save Board</button>
-<button id="loadButton" class="button">Load Board</button>
-<button id="testButton" class="button">Test</button>
-<button id="test2Button" class="button">Test2</button>
-<button id="test3Button" class="button">Test3</button>
-<button id="test4Button" class="button">Test4</button>
-<button id="randomBoardButton" class="button">Randomize!</button>
+<div id="buttons">
+    <button id="resetButton" class="button" title="Remove everything from the board">Reset Board</button>
+    <button id="saveButton" class="button" title="Save the board state">Save Board</button>
+    <button id="loadButton" class="button" title="Load the board state">Load Board</button>
+    <button id="testButton" class="button">Test</button>
+    <button id="test2Button" class="button">Test2</button>
+    <button id="test3Button" class="button">Test3</button>
+    <button id="test4Button" class="button">Test4</button>
+    <button id="randomBoardButton" class="button" title="Randomize the board using the width, height and creature count below">Randomize!</button>
+</div>
+<div id="boardVariables">
+    Width: <input type="number" id="widthInput" value="8" title="How wide the board should be"> 
+    Height: <input type="number" id="heightInput" value="6" title="How tall the board should be">
+    Creature Count: <input type="number" id="countInput" value="24" title="How many creatures should appear when randomize is used">
+</div>
 
 <script>
     let selectedColour = 'red'; // Default colour
-    let boardWidth = 8;
+    let boardWidth = 8; // 8 by 6 with 24 creatures seems to be the default in dungeons
     let boardHeight = 6;
     let creatureCount = 24;
+    let boardState = '';
     const objects = ['red', 'yellow', 'green', 'purple', 'wall', 'orb', 'combinedred', 'combinedyellow', 'combinedgreen', 'combinedpurple'];
     const boardContainer = document.querySelector('.board');
     const resetButton = document.getElementById('resetButton');
@@ -144,6 +153,12 @@
     const widthInput = document.getElementById('widthInput');
     const heightInput = document.getElementById('heightInput');
     const creatureInput = document.getElementById('countInput');
+
+    //hide test buttons for release
+    testButton.hidden = true;
+    test2Button.hidden = true;
+    test3Button.hidden = true;
+    test4Button.hidden = true;
 
     function createCell() {
         const cell = document.createElement('div');
@@ -248,7 +263,7 @@
     }
 
     function pushToTheFront() {
-        const cells = document.querySelectorAll('.cell'); // all cells
+         const cells = document.querySelectorAll('.cell'); // all cells
         const pushForwardList = ['combinedred', 'combinedyellow', 'combinedgreen', 'combinedpurple'];
         
         for (let i = 0; i < (cells.length - boardWidth); i++) {
@@ -333,7 +348,7 @@
                 if (previousColour === currentColour) {
                     numberInARow++;
                 } else {
-                    if (numberInARow > 1 && previousColour.startsWith("contained")) {
+                    if (numberInARow > 1 && previousColour.startsWith("combined")) {
                         for (let i = 0; i < numberInARow; i++) {
                             columnOfCells.pop();
                         }
@@ -343,19 +358,21 @@
                         // console.log("LOG combineSmallCreatures - TOP Found " + numberInARow + " in a row");
                         // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
                         console.log(columnOfCells);
-                        for (let i = 0; i < numberInARow; i++) {
-                            columnOfCells.pop();
+                        if (previousColour != "orb") {
+                            for (let i = 0; i < numberInARow; i++) {
+                                columnOfCells.pop();
+                            }
+                            columnOfCells.splice(0, 0, "combined" + previousColour);
+                            // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                            // console.log(columnOfCells);
+                            movementHappened = true;
                         }
-                        columnOfCells.splice(0, 0, "combined" + previousColour);
-                        // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
-                        // console.log(columnOfCells);
-                        movementHappened = true;
                     }
                     numberInARow = 1;
                 }
                 columnOfCells.push(currentColour);
             }
-            if (numberInARow > 1 && previousColour.startsWith("contained")) {
+            if (numberInARow > 1 && previousColour.startsWith("combined")) {
                 for (let i = 0; i < numberInARow; i++) {
                     columnOfCells.pop();
                 }
@@ -366,15 +383,18 @@
                 // console.log("LOG combineSmallCreatures - BOT Found " + numberInARow + " in a row");
                 // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
                 console.log(columnOfCells);
-                for (let i = 0; i < numberInARow; i++) {
-                    console.log("pop");
-                    columnOfCells.pop();
+                if (previousColour != "orb") {
+                    for (let i = 0; i < numberInARow; i++) {
+                        console.log("pop");
+                        columnOfCells.pop();
+                    }
+                    // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
+                    // console.log(columnOfCells);
+                    columnOfCells.push("combined" + previousColour);
+                    console.log(columnOfCells);
+                    movementHappened = true;
                 }
-                // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
-                // console.log(columnOfCells);
-                columnOfCells.push("combined" + previousColour);
-                console.log(columnOfCells);
-                movementHappened = true;
+                
             }
             if (movementHappened) {
                 // console.log("LOG combineSmallCreatures - columnOfCells looks like this: ");
@@ -631,12 +651,129 @@
         return Math.floor(Math.random() * number) + 1;
     }
 
+    function cellStateToCharacter(state) {
+        // 26th March - 'wall', 'red', 'yellow', 'green', 'purple', 'combinedred', 'combinedyellow', 'combinedgreen', 'combinedpurple', 'orb', 'empty'
+        let character;
+        switch(state) {
+        case "wall":
+            character = "w";
+            break;
+        case "red":
+            character = "r";
+            break;
+        case "yellow":
+            character = "y";
+            break;
+        case "green":
+            character = "g";
+            break;
+        case "purple":
+            character = "p";
+            break;
+        case "combinedred":
+            character = "R";
+            break;
+        case "combinedyellow":
+            character = "Y";
+            break;
+        case "combinedgreen":
+            character = "G";
+            break;
+        case "combinedpurple":
+            character = "P";
+            break;
+        case "orb":
+            character = "o";
+            break;
+        case "empty":
+            character = "e";
+            break;
+        default:
+            character = "e";
+        }
+        return character;
+    }
+    function characterToCellState(character) {
+        let state;
+        switch(character) {
+            case "w":
+            state = "wall";
+            break;
+        case "r":
+            state = "red";
+            break;
+        case "y":
+            state = "yellow";
+            break;
+        case "g":
+            state = "green";
+            break;
+        case "p":
+            state = "purple";
+            break;
+        case "R":
+            state = "combinedred";
+            break;
+        case "Y":
+            state = "combinedyellow";
+            break;
+        case "G":
+            state = "combinedgreen";
+            break;
+        case "P":
+            state = "combinedpurple";
+            break;
+        case "o":
+            state = "orb";
+            break;
+        case "e":
+            state = "empty";
+            break;
+        default:
+            state = "undefined";
+        }
+        return state;
+    }
+
     function save() {
         console.log("ClickedButton Save");
+        // get boardState information and save it
+        boardState = '';
+        let state = '';
+        
+        const cells = document.querySelectorAll('.cell');
+        for (const cell of cells) {
+            if (checkEmpty(cell)) {
+                state = 'empty';
+            } else {
+                state = getColourForCell(cell);
+            }
+            
+            boardState += cellStateToCharacter(state);
+        }
+        console.log("LOG save - boardState: " + boardState);
     }
 
     function load() {
         console.log("ClickedButton Load");
+        if (boardState.length === 0) {
+            console.log("LOG load - boardState is empty, unable to load");
+            return;
+        }
+        console.log("LOG load - boardState: " + boardState);
+        let state = ''
+        let character = '';
+        resetBoard();
+        const cells = document.querySelectorAll('.cell');
+        for (i=0; i < boardState.length; i++) {
+            character = boardState.charAt(i);
+            state = characterToCellState(character);
+            if (state === "empty") {
+                clearCell(cells[i]);
+            } else {
+                addColour(cells[i], state);
+            }
+        }
     }
 
     function test() { 
@@ -740,7 +877,7 @@
         addColour(cells[2],objects[1]);
         addColour(cells[3],objects[4]);
         addColour(cells[4],objects[0]);
-        // addColour(cells[5],objects[4]);
+        addColour(cells[5],objects[9]);
         // addColour(cells[6],objects[4]);
         // addColour(cells[7],objects[4]);
         
@@ -749,7 +886,7 @@
         addColour(cells[10],objects[7]);
         addColour(cells[11],objects[2]);
         addColour(cells[12],objects[6]);
-        // addColour(cells[13],objects[2]);
+        addColour(cells[13],objects[9]);
         // addColour(cells[14],objects[0]);
         // addColour(cells[15],objects[2])
         
@@ -758,7 +895,7 @@
         addColour(cells[18],objects[4]);
         addColour(cells[19],objects[3]);
         addColour(cells[20],objects[6]);
-        // addColour(cells[21],objects[3]);
+        addColour(cells[21],objects[9]);
         // addColour(cells[22],objects[2]);
         // addColour(cells[23],objects[2]);
 
@@ -767,7 +904,7 @@
         // addColour(cells[26],objects[2]);
         // addColour(cells[27],objects[0]);
         // addColour(cells[28],objects[0]);
-        // addColour(cells[29],objects[2]);
+        addColour(cells[29],objects[2]);
         // addColour(cells[30],objects[0]);
         // addColour(cells[31],objects[0]);
 
