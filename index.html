@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SunBurst Finder</title>
 <style>
+
     body {
         font-family: Arial, sans-serif;
     }
+    
     .board {
         display: grid;
         gap: 5px;
@@ -21,6 +23,9 @@
         background-color: #ffffff;
         border: 2px solid #ffffff;
         cursor: pointer;
+    }
+    #boardVariables {
+        margin-bottom: 10px;
     }
     #colourSelectors {
         display: flex;
@@ -87,10 +92,19 @@
         border: none;
         cursor: pointer;
     }
+    @media (min-width: 600px) {
+        .board {
+            padding: 5px;
+        }
+        .cell {
+            width: 70px;
+            height: 70px;
+        }
+    }
 </style>
 </head>
 <body>
-<div>
+<div id="boardVariables">
     Width: <input type="number" id="widthInput" value="8"> 
     Height: <input type="number" id="heightInput" value="6">
     Creature Count: <input type="number" id="countInput" value="24">
@@ -105,6 +119,8 @@
 </div>
 <div class="board"></div>
 <button id="resetButton" class="button">Reset Board</button>
+<button id="saveButton" class="button">Save Board</button>
+<button id="loadButton" class="button">Load Board</button>
 <button id="testButton" class="button">Test</button>
 <button id="test2Button" class="button">Test2</button>
 <button id="test3Button" class="button">Test3</button>
@@ -181,7 +197,7 @@
                 console.log("LOG moveUp - the above was full");
                 // If the space above is full then the creature stays, unless it's a wall then it can combine or move past others
                 mergeCell(cell, cellInAboveRow, "wall");
-                mergeCell(cell, cellInAboveRow, "combinedred");
+                
             }   
         }
     }
@@ -251,8 +267,11 @@
                 console.log("LOG pushToTheFront - swap");
                 swapCells(cell, cellInBelowRow);
             } else if (checkEmpty(cell) && !checkEmpty(cellInBelowRow)) {
+                //console.log("LOG pushToTheFront - empty cell, move things upwards");
                 moveUp(cellInBelowRow);
-                //console.log("LOG pushToTheFront - push forwards");
+            } else if (cellContains(cell, ["orb"]) && !checkEmpty(cellInBelowRow)) {
+                //console.log("LOG pushToTheFront - orb, push it down");
+                swapCells(cell, cellInBelowRow);
             } else {
                 //console.log("LOG pushToTheFront - do nothing");
             }
@@ -471,8 +490,7 @@
         if (numberInARow >= 5) {
             let orbColumnIndex = (getColumnIndexForCell(cell) + 2);
             console.log("ORB in rowIndex: " + orbColumnIndex);
-            addObjectToColumnIndex(orbColumnIndex, "orb")
-            // TODO insert orb in middle   
+            addObjectToColumnIndex(orbColumnIndex, "orb")  
         }
     }
 
@@ -491,7 +509,17 @@
     }
 
     function updateBoardSize() {
-        boardContainer.style.gridTemplateColumns = `repeat(${boardWidth}, 80px)`;
+        let columnWidth = 80;
+        let gap = 5;
+        if (window.innerWidth <= 640) {
+            columnWidth = 70;
+        } 
+        boardContainer.style.gridTemplateColumns = `repeat(${boardWidth}, ${columnWidth}px)`;
+        // Calculate the total width of the board container
+        const totalWidth = (columnWidth + gap) * boardWidth - gap;
+
+        // Set the width of the board container
+        boardContainer.style.width = `${totalWidth}px`;
         while (boardContainer.children.length > boardWidth * boardHeight) {
             boardContainer.removeChild(boardContainer.lastChild);
         }
@@ -580,6 +608,12 @@
     // Create the board initially
     updateBoardSize();
 
+    // Event listener for save button
+    saveButton.addEventListener('click', save);
+
+    // Event listener for load button
+    loadButton.addEventListener('click', load);
+
     // Event listener for reset button
     resetButton.addEventListener('click', resetBoard);
     
@@ -595,6 +629,14 @@
 
     function getRandomInteger(number) {
         return Math.floor(Math.random() * number) + 1;
+    }
+
+    function save() {
+        console.log("ClickedButton Save");
+    }
+
+    function load() {
+        console.log("ClickedButton Load");
     }
 
     function test() { 
