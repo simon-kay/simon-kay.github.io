@@ -6,12 +6,8 @@
 <title>SunBurst Finder</title>
 <style>
 
-    body {
-        font-family: Arial, sans-serif;
-    }
-    body > div {
-        margin-bottom: 10px;
-    }
+    body {font-family: Arial, sans-serif;}
+    body > div {margin-bottom: 10px;}
     
     .board {
         display: grid;
@@ -44,6 +40,14 @@
         margin-right: 5px;
     }
     .selector.red {border: 2px solid black;}
+    .count {
+        position: relative;
+        top: 25%;
+        left: 25%;
+        transform: translate(-50%, -50%);
+        color: lightgray;
+    }
+    .selector.yellow .count{color: darkgray;}
     .remove {
         background-color: red;
         color: white;
@@ -111,10 +115,10 @@
 <body>
 <div id="colourSelectors">
     <span><b>Select:</b></span>
-    <div class="selector red" data-color="red" title="Add a red"></div>
-    <div class="selector yellow" data-color="yellow" title="Add a yellow"></div>
-    <div class="selector green" data-color="green" title="Add a green"></div>
-    <div class="selector purple" data-color="purple" title="Add a purple"></div>
+    <div class="selector red counttrack" data-color="red" title="Add a red"><span class="count">0</span></div>
+    <div class="selector yellow counttrack" data-color="yellow" title="Add a yellow"><span class="count">0</span></div>
+    <div class="selector green counttrack" data-color="green" title="Add a green"><span class="count">0</span></div>
+    <div class="selector purple counttrack" data-color="purple" title="Add a purple"><span class="count">0</span></div>
     <div class="selector wall" data-color="wall" title="Add a wall"></div>
     <div class="selector remove" data-color="remove" title="Remove something">X</div>
 </div>
@@ -149,10 +153,21 @@
     const test3Button = document.getElementById('test3Button');
     const test4Button = document.getElementById('test4Button');
     const randomBoardButton = document.getElementById('randomBoardButton');
+    // Get all selector elements
     const colourSelectors = document.querySelectorAll('.selector');
+    const colourCountSelectors = document.querySelectorAll('.counttrack');
     const widthInput = document.getElementById('widthInput');
     const heightInput = document.getElementById('heightInput');
     const creatureInput = document.getElementById('countInput');
+    // Initialize count for each color
+    const counts = {
+        red: 0,
+        yellow: 0,
+        green: 0,
+        purple: 0,
+    };
+
+
 
     //hide test buttons for release
     testButton.hidden = true;
@@ -263,7 +278,7 @@
     }
 
     function pushToTheFront() {
-         const cells = document.querySelectorAll('.cell'); // all cells
+        const cells = document.querySelectorAll('.cell'); // all cells
         const pushForwardList = ['combinedred', 'combinedyellow', 'combinedgreen', 'combinedpurple'];
         
         for (let i = 0; i < (cells.length - boardWidth); i++) {
@@ -307,11 +322,8 @@
         }
         combineSmallCreatures();
         pushToTheFront();
-        // moveForwardAndCombine("combinedred");
-        // moveForwardAndCombine("combinedyellow");
-        // moveForwardAndCombine("combinedgreen");
-        // moveForwardAndCombine("combinedpurple");
         checkForWalls();
+        countColors();
         for (const cell of cells) {
             cellsAfter = cellsAfter + cell.classList.value;
         }
@@ -526,6 +538,34 @@
         for (const cell of cells) {
             clearCell(cell);
         }
+        resetCounts();
+    }
+    function countColors() {
+        resetCounts();
+        const cells = document.querySelectorAll('.cell');
+        let color;
+        for (const cell of cells) {
+            color = getColourForCell(cell);
+            if (color in counts) {
+                counts[color]++; // Increment the count for the corresponding color
+            }
+        }
+        updateCounts();
+    }
+    function updateCounts() {
+        colourCountSelectors.forEach(selector => {
+            const color = selector.dataset.color;
+            const countElement = selector.querySelector('.count');
+            countElement.textContent = counts[color];
+        });
+    }
+
+    function resetCounts() {
+        // Reset counts back to 0 values for each color
+        for (const color in counts) {
+            counts[color] = 0;
+        }
+        updateCounts();
     }
 
     function updateBoardSize() {
@@ -774,6 +814,7 @@
                 addColour(cells[i], state);
             }
         }
+        countColors();
     }
 
     function test() { 
